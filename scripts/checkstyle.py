@@ -33,12 +33,11 @@ class c:
 # Before: printf '%s\\n' '^w^'
 # After: printf '%s\n' '^w^'
 def noDoubleBackslashFixer(line: str, rule: Dict[str, str], m) -> str:
-    prestr = line[0:m.start('match')]
+    prestr = line[:m.start('match')]
     midstr = line[m.start('match'):m.end('match')]
     poststr = line[m.end('match'):]
 
-    fixed_line = f'{prestr}{midstr[1:]}{poststr}'
-    return fixed_line
+    return f'{prestr}{midstr[1:]}{poststr}'
 
 def lintfile(filepath: Path, rules: List[Dict[str, str]], options: Dict[str, Any]):
     content_arr = filepath.read_text().split('\n')
@@ -46,9 +45,9 @@ def lintfile(filepath: Path, rules: List[Dict[str, str]], options: Dict[str, Any
     for line_i, line in enumerate(content_arr):
         for rule in rules:
             m = re.search(rule['regex'], line)
-            if m is not None and m.group('match') is not None:
+            if m is not None and m['match'] is not None:
                 dir = os.path.relpath(filepath.resolve(), Path.cwd())
-                prestr = line[0:m.start('match')]
+                prestr = line[:m.start('match')]
                 midstr = line[m.start('match'):m.end('match')]
                 poststr = line[m.end('match'):]
 
@@ -93,16 +92,19 @@ def main():
                 lintfile(p, rules, options)
     else:
         for file in Path.cwd().glob('**/*'):
-            if file.name.endswith('.bash') or file.name.endswith('.sh') or file.name.endswith('.bats'):
-                if file.is_file():
-                    lintfile(file, rules, options)
+            if (
+                file.name.endswith('.bash')
+                or file.name.endswith('.sh')
+                or file.name.endswith('.bats')
+            ) and file.is_file():
+                lintfile(file, rules, options)
 
     # print final results
     print(f'{c.UNDERLINE}TOTAL ISSUES{c.RESET}')
     for rule in rules:
         print(f'{c.MAGENTA}{rule["name"]}{c.RESET}: {rule["found"]}')
 
-    grand_total = sum([rule['found'] for rule in rules])
+    grand_total = sum(rule['found'] for rule in rules)
     print(f'GRAND TOTAL: {grand_total}')
 
     # exit
